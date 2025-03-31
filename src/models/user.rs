@@ -39,8 +39,7 @@ pub struct User {
 
 #[derive(Serialize)]
 pub struct NewUser {
-    #[serde(rename = "_id")]
-    pub id: ObjectId,
+    pub id: String,
     pub name: String,
     pub email: String,
     pub phone_number: String,

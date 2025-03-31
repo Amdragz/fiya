@@ -42,7 +42,7 @@ impl UserRepository {
 
         match result {
             Ok(_) => Ok(NewUser {
-                id: new_user.id,
+                id: new_user.id.to_string(),
                 name: new_user.name,
                 email: new_user.email,
                 phone_number: new_user.phone_number,
