@@ -9,6 +9,7 @@ use axum::{
     routing::get,
     Router,
 };
+use endpoints::{auth_endpoints::auth_endpoints, user_endpoints::user_endpoints};
 use mongodb::Client;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -16,9 +17,11 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 mod config;
 mod dtos;
 mod endpoints;
+mod middleware;
 mod models;
 mod repository;
 mod services;
+mod utils;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -37,9 +40,9 @@ async fn main() {
 
     let mongo_client = config::database::extablish_mongodb_connection().await;
 
-    let app_state = AppState {
+    let app_state = Arc::new(AppState {
         mongo_client: Arc::new(mongo_client),
-    };
+    });
 
     let _web_cors = CorsLayer::new()
         .allow_origin(["http://localhost:5172".parse().unwrap()])
@@ -55,6 +58,8 @@ async fn main() {
 
     let app = Router::new()
         .route("/health", get(health_check))
+        .nest("/users", user_endpoints())
+        .nest("/auth", auth_endpoints())
         .with_state(app_state)
         .layer(_web_cors)
         .layer(TraceLayer::new_for_http());
