@@ -45,7 +45,10 @@ async fn main() {
     });
 
     let _web_cors = CorsLayer::new()
-        .allow_origin(["http://localhost:5172".parse().unwrap()])
+        .allow_origin([
+            "http://localhost:5172".parse().unwrap(),
+            "https://fiya-wep-app.vercel.app".parse().unwrap(),
+        ])
         .allow_credentials(true)
         .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT])
         .allow_methods([
