@@ -17,3 +17,9 @@ pub struct LoginSuccessDto {
     pub refresh_token: String,
     pub token_type: String,
 }
+
+#[derive(Deserialize, Validate)]
+pub struct RefreshTokenRequestDto {
+    #[validate(length(min = 1, message = "refresh_token can not be empty"))]
+    pub refresh_token: Option<String>,
+}

@@ -58,6 +58,19 @@ impl UserRepository {
         }
     }
 
+    pub async fn find_user_by_id(&self, id: &str) -> Result<Option<User>, ApiErrorResponse> {
+        let obj_id = ObjectId::parse_str(id).map_err(internal_error)?;
+        let user = self
+            .collection
+            .find_one(doc! {
+                "_id": obj_id,
+            })
+            .await
+            .map_err(internal_error)?;
+
+        Ok(user)
+    }
+
     pub async fn find_admin_user_by_id(
         &self,
         admin_id: String,
@@ -95,6 +108,20 @@ impl UserRepository {
             .insert_one(&refresh_token)
             .await
             .map_err(internal_error)?;
+        Ok(refresh_token)
+    }
+
+    pub async fn find_valid_user_refresh_token_by_id(
+        &self,
+        id: &str,
+    ) -> Result<Option<RefreshToken>, ApiErrorResponse> {
+        let user_id = ObjectId::parse_str(id).map_err(internal_error)?;
+        let refresh_token = self
+            .token_collection
+            .find_one(doc! { "user_id": user_id  })
+            .await
+            .map_err(internal_error)?;
+
         Ok(refresh_token)
     }
 }
