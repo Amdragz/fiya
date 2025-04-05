@@ -21,7 +21,8 @@ pub async fn requires_auth(mut req: Request, next: Next) -> Result<Response, Api
         None => return Err(ApiErrorResponse::new(401, String::from("Unauthorized"))),
     };
 
-    let claims: Claims = jwt::verify(token.to_string()).map_err(invalid_credentials_error)?;
+    let claims: Claims =
+        jwt::verify(token.to_string(), Some(true)).map_err(invalid_credentials_error)?;
     let current_user = AuthUserDto {
         id: claims.sub,
         user_type: claims.role,
