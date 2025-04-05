@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RefreshToken {
     #[serde(rename = "_id")]
     pub id: ObjectId,

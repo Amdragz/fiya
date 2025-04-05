@@ -115,14 +115,39 @@ impl UserRepository {
         &self,
         id: &str,
     ) -> Result<Option<RefreshToken>, ApiErrorResponse> {
-        let user_id = ObjectId::parse_str(id).map_err(internal_error)?;
+        let id = ObjectId::parse_str(id).map_err(internal_error)?;
+
         let refresh_token = self
             .token_collection
-            .find_one(doc! { "user_id": user_id  })
+            .find_one(doc! { "_id": id  })
+            .await
+            .map_err(internal_error)?;
+        Ok(refresh_token)
+    }
+
+    pub async fn update_user_password_by_id(
+        &self,
+        id: &str,
+        new_password: String,
+    ) -> Result<(), ApiErrorResponse> {
+        let user_id = ObjectId::parse_str(id).map_err(internal_error)?;
+        let filter = doc! { "_id": user_id };
+        let update = doc! { "$set": { "password": new_password }  };
+
+        let result = self
+            .collection
+            .update_one(filter, update)
             .await
             .map_err(internal_error)?;
 
-        Ok(refresh_token)
+        match (result.matched_count, result.modified_count) {
+            (0, _) => Err(ApiErrorResponse::new(404, String::from("user not found"))),
+            (_, 0) => Err(ApiErrorResponse::new(
+                200,
+                String::from("No changes made to the data"),
+            )),
+            _ => Ok(()),
+        }
     }
 }
 

@@ -1,17 +1,20 @@
 use std::{str::FromStr, sync::Arc};
 
 use axum_extra::headers::UserAgent;
+use bcrypt::hash;
 use mongodb::{bson::oid::ObjectId, Client};
 
 use crate::{
-    dtos::auth_dto::{LoginDto, LoginSuccessDto, RefreshTokenRequestDto},
+    dtos::auth_dto::{
+        ChangePasswordDto, LoginDto, LoginSuccessDto, RefreshTokenRequestDto, UpdatePasswordDto,
+    },
     models::{refresh_token::RefreshToken, user::UserType},
     repository::user_repository::UserRepository,
     utils::{
-        error_handler::{bad_request_error, http_error, invalid_credentials_error},
+        error_handler::{bad_request_error, http_error, internal_error, invalid_credentials_error},
         helper::is_browser,
         jwt::{self, RefreshTokenClaims},
-        response::{ApiErrorResponse, AuthLoginSuccessResponse},
+        response::{ApiErrorResponse, ApiSuccessResponse, AuthLoginSuccessResponse},
     },
 };
 
@@ -112,8 +115,8 @@ impl AuthService {
         };
 
         if let Some(refresh_token) = refresh_token {
-            let refresh_token_claims =
-                jwt::verify::<RefreshTokenClaims>(refresh_token).map_err(bad_request_error)?;
+            let refresh_token_claims = jwt::verify::<RefreshTokenClaims>(refresh_token, None)
+                .map_err(bad_request_error)?;
             let valid_refresh_token = match user_repo
                 .find_valid_user_refresh_token_by_id(&refresh_token_claims.id)
                 .await
@@ -166,6 +169,63 @@ impl AuthService {
             Err(ApiErrorResponse::new(
                 401,
                 "Invalid refresh token request".to_string(),
+            ))
+        }
+    }
+
+    pub async fn update_user_password(
+        &self,
+        user_id: String,
+        payload: UpdatePasswordDto,
+    ) -> Result<ApiSuccessResponse<()>, ApiErrorResponse> {
+        let db = self.client.database("fiyadb");
+        let user_repo = UserRepository::new(&db);
+
+        let found_user = match user_repo.find_user_by_id(&user_id).await? {
+            Some(user) => user,
+            None => return Err(ApiErrorResponse::new(401, String::from("Unauthorized"))),
+        };
+        let new_password = hash(payload.password, 12).map_err(internal_error)?;
+        user_repo
+            .update_user_password_by_id(&found_user.id.to_string(), new_password)
+            .await?;
+
+        Ok(ApiSuccessResponse::new(
+            String::from("Succesfully updated user password"),
+            (),
+            None,
+        ))
+    }
+
+    pub async fn change_user_password(
+        &self,
+        user_id: String,
+        payload: ChangePasswordDto,
+    ) -> Result<ApiSuccessResponse<()>, ApiErrorResponse> {
+        let db = self.client.database("fiyadb");
+        let user_repo = UserRepository::new(&db);
+
+        let found_user = match user_repo.find_user_by_id(&user_id).await? {
+            Some(user) => user,
+            None => return Err(ApiErrorResponse::new(401, String::from("Unauthorized"))),
+        };
+
+        let valid = bcrypt::verify(payload.old_password, &found_user.password)
+            .map_err(invalid_credentials_error)?;
+
+        if valid {
+            user_repo
+                .update_user_password_by_id(&found_user.id.to_string(), payload.new_password)
+                .await?;
+            Ok(ApiSuccessResponse::new(
+                String::from("Succesfully changed password"),
+                (),
+                None,
+            ))
+        } else {
+            Err(ApiErrorResponse::new(
+                400,
+                String::from("Unable to update password"),
             ))
         }
     }
