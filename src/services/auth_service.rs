@@ -212,10 +212,10 @@ impl AuthService {
 
         let valid = bcrypt::verify(payload.old_password, &found_user.password)
             .map_err(invalid_credentials_error)?;
-
+        let new_password = hash(payload.new_password, 12).map_err(internal_error)?;
         if valid {
             user_repo
-                .update_user_password_by_id(&found_user.id.to_string(), payload.new_password)
+                .update_user_password_by_id(&found_user.id.to_string(), new_password)
                 .await?;
             Ok(ApiSuccessResponse::new(
                 String::from("Succesfully changed password"),
