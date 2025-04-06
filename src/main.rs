@@ -9,7 +9,9 @@ use axum::{
     routing::get,
     Router,
 };
-use endpoints::{auth_endpoints::auth_endpoints, user_endpoints::user_endpoints};
+use endpoints::{
+    auth_endpoints::auth_endpoints, cage_endpoints::cage_endpoints, user_endpoints::user_endpoints,
+};
 use mongodb::Client;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -63,6 +65,7 @@ async fn main() {
         .route("/health", get(health_check))
         .nest("/users", user_endpoints())
         .nest("/auth", auth_endpoints())
+        .nest("/cages", cage_endpoints())
         .with_state(app_state)
         .layer(_web_cors)
         .layer(TraceLayer::new_for_http());
