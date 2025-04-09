@@ -10,7 +10,7 @@ use axum::{
     Router,
 };
 use endpoints::{
-    auth_endpoints::auth_endpoints, cage_endpoints::cage_endpoints, user_endpoints::user_endpoints,
+    auth_endpoints::auth_endpoints, spm_endpoints::spm_endpoints, user_endpoints::user_endpoints,
 };
 use mongodb::Client;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
@@ -65,7 +65,7 @@ async fn main() {
         .route("/health", get(health_check))
         .nest("/users", user_endpoints())
         .nest("/auth", auth_endpoints())
-        .nest("/cages", cage_endpoints())
+        .nest("/spm", spm_endpoints())
         .with_state(app_state)
         .layer(_web_cors)
         .layer(TraceLayer::new_for_http());
