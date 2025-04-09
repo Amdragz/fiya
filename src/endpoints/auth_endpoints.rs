@@ -23,7 +23,8 @@ pub fn auth_endpoints() -> Router<Arc<AppState>> {
         .route("/refresh-token", post(refresh_user_token))
         .route(
             "/update-password",
-            post(update_user_password).layer(middleware::from_fn(auth_middleware::requires_auth)),
+            post(update_user_one_time_password)
+                .layer(middleware::from_fn(auth_middleware::requires_auth)),
         )
         .route(
             "/change-password",
@@ -53,7 +54,7 @@ async fn refresh_user_token(
         .await
 }
 
-async fn update_user_password(
+async fn update_user_one_time_password(
     State(app_state): State<Arc<AppState>>,
     Extension(auth_user): Extension<AuthUserDto>,
     ValidatedJson(payload): ValidatedJson<UpdatePasswordDto>,
