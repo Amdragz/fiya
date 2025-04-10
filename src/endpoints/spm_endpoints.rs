@@ -22,7 +22,7 @@ use crate::{
 pub fn spm_endpoints() -> Router<Arc<AppState>> {
     Router::new()
         .route(
-            "/",
+            "/cages",
             post(add_new_cage).layer(middleware::from_fn(auth_middleware::requires_auth)),
         )
         .route("/:cage_id", post(update_cage_info))
