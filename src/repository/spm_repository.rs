@@ -1,4 +1,5 @@
 use bson::doc;
+use futures::TryStreamExt;
 use mongodb::{Collection, Database};
 
 use crate::{
@@ -38,6 +39,18 @@ impl SpmRepository {
             .map_err(internal_error)?;
 
         Ok(cage)
+    }
+
+    pub async fn find_all_users_cages(
+        &self,
+        assigned_monitor: String,
+    ) -> Result<Vec<Cage>, ApiErrorResponse> {
+        let filter = doc! { "assigned_monitor": assigned_monitor };
+
+        let cursor = self.collection.find(filter).await.map_err(internal_error)?;
+        let cages: Vec<Cage> = cursor.try_collect().await.map_err(internal_error)?;
+
+        Ok(cages)
     }
 
     pub async fn update_cage_by_id(

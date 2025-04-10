@@ -42,6 +42,22 @@ impl SpmService {
         ))
     }
 
+    pub async fn fetch_all_users_cages(
+        &self,
+        assigned_monitor: String,
+    ) -> Result<ApiSuccessResponse<Vec<Cage>>, ApiErrorResponse> {
+        let db = self.client.database("fiyadb");
+        let spm_repo = SpmRepository::new(db);
+
+        let cages = spm_repo.find_all_users_cages(assigned_monitor).await?;
+
+        Ok(ApiSuccessResponse::new(
+            String::from("Succesfully fetched all users cages"),
+            cages,
+            None,
+        ))
+    }
+
     pub async fn update_cage_info(
         &self,
         cage_id: String,
