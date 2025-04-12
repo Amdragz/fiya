@@ -21,10 +21,10 @@ pub struct Cage {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ObjectRecognition {
-    pub coccidiosis: u32,
-    pub newcastle: u32,
-    pub salmonella: u32,
-    pub healthy: u32,
+    pub coccidiosis: f32,
+    pub newcastle: f32,
+    pub salmonella: f32,
+    pub healthy: f32,
 }
 
 #[derive(Serialize, Deserialize)]

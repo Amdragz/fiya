@@ -8,7 +8,7 @@ use axum::{
 };
 
 use crate::{
-    dtos::spm_dtos::{AddNewCageDto, UpdateCageDto},
+    dtos::spm_dtos::{AddNewCageDto, CageDto, UpdateCageDto},
     middleware::auth_middleware,
     models::{spm::Cage, user::AuthUserDto},
     services::spm_service::SpmService,
@@ -36,7 +36,7 @@ pub async fn add_new_cage(
     State(app_state): State<Arc<AppState>>,
     Extension(auth_user): Extension<AuthUserDto>,
     ValidatedJson(payload): ValidatedJson<AddNewCageDto>,
-) -> Result<ApiSuccessResponse<Cage>, ApiErrorResponse> {
+) -> Result<ApiSuccessResponse<CageDto>, ApiErrorResponse> {
     let spm_service = SpmService::new(app_state.mongo_client.clone());
     spm_service.add_new_cage(auth_user.id, payload).await
 }
@@ -54,7 +54,7 @@ pub async fn fetch_all_users_cages(
     State(app_sate): State<Arc<AppState>>,
     Extension(_): Extension<AuthUserDto>,
     Path(assigned_monitor): Path<String>,
-) -> Result<ApiSuccessResponse<Vec<Cage>>, ApiErrorResponse> {
+) -> Result<ApiSuccessResponse<Vec<CageDto>>, ApiErrorResponse> {
     let spm_service = SpmService::new(app_sate.mongo_client.clone());
     spm_service.fetch_all_users_cages(assigned_monitor).await
 }

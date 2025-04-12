@@ -91,6 +91,8 @@ impl UserService {
                     created_by: found_user.created_by,
                     phone_number: found_user.phone_number,
                     created_customers: found_user.created_customers,
+                    created_at: found_user.created_at,
+                    updated_at: found_user.updated_at,
                 };
 
                 Ok(ApiSuccessResponse::new(

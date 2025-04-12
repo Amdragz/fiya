@@ -50,6 +50,8 @@ impl UserRepository {
                 created_customers: new_user.created_customers,
                 created_by: new_user.created_by,
                 spm_id: new_user.spm_id,
+                created_at: new_user.created_at,
+                updated_at: new_user.updated_at,
             }),
             Err(err) if err.to_string().contains("E11000 duplicate key error") => Err(
                 ApiErrorResponse::new(400, "Email already exists".to_string()),
