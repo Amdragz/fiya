@@ -50,4 +50,6 @@ pub struct NewUser {
     pub created_by: Option<ObjectId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub spm_id: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }

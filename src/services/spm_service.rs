@@ -3,10 +3,13 @@ use std::sync::Arc;
 use mongodb::Client;
 
 use crate::{
-    dtos::spm_dtos::{AddNewCageDto, UpdateCageDto},
+    dtos::spm_dtos::{AddNewCageDto, CageDto, UpdateCageDto},
     models::spm::Cage,
     repository::{spm_repository::SpmRepository, user_repository::UserRepository},
-    utils::response::{ApiErrorResponse, ApiSuccessResponse},
+    utils::{
+        helper::hash_id_with_secret,
+        response::{ApiErrorResponse, ApiSuccessResponse},
+    },
 };
 
 pub struct SpmService {
@@ -22,7 +25,7 @@ impl SpmService {
         &self,
         user_id: String,
         add_new_cage: AddNewCageDto,
-    ) -> Result<ApiSuccessResponse<Cage>, ApiErrorResponse> {
+    ) -> Result<ApiSuccessResponse<CageDto>, ApiErrorResponse> {
         let db = self.client.database("fiyadb");
         let user_repo = UserRepository::new(&db);
         let spm_repo = SpmRepository::new(db);
@@ -35,9 +38,11 @@ impl SpmService {
         let cage = add_new_cage.to_model();
 
         let new_cage = spm_repo.create_new_cage(cage).await?;
+        let cage_dto = CageDto::from(new_cage);
+
         Ok(ApiSuccessResponse::new(
             String::from("New cage added succesfully"),
-            new_cage,
+            cage_dto,
             None,
         ))
     }
@@ -45,15 +50,16 @@ impl SpmService {
     pub async fn fetch_all_users_cages(
         &self,
         assigned_monitor: String,
-    ) -> Result<ApiSuccessResponse<Vec<Cage>>, ApiErrorResponse> {
+    ) -> Result<ApiSuccessResponse<Vec<CageDto>>, ApiErrorResponse> {
         let db = self.client.database("fiyadb");
         let spm_repo = SpmRepository::new(db);
 
         let cages = spm_repo.find_all_users_cages(assigned_monitor).await?;
+        let cage_dtos = cages.into_iter().map(CageDto::from).collect();
 
         Ok(ApiSuccessResponse::new(
             String::from("Succesfully fetched all users cages"),
-            cages,
+            cage_dtos,
             None,
         ))
     }
@@ -66,7 +72,8 @@ impl SpmService {
         let db = self.client.database("fiyadb");
         let spm_repo = SpmRepository::new(db);
 
-        let found_cage = match spm_repo.find_cage_by_id(&cage_id).await? {
+        let hashed_cage_id = hash_id_with_secret(&cage_id);
+        let found_cage = match spm_repo.find_cage_by_id(&hashed_cage_id).await? {
             Some(cage) => cage,
             None => {
                 return Err(ApiErrorResponse::new(
