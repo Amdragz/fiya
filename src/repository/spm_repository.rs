@@ -1,27 +1,51 @@
 use bson::doc;
 use futures::TryStreamExt;
-use mongodb::{Collection, Database};
+use mongodb::{ClientSession, Collection, Database};
 
 use crate::{
-    models::spm::{Cage, UpdateCage},
+    models::spm::{Cage, SpmDeviceToken, UpdateCage},
     utils::{error_handler::internal_error, response::ApiErrorResponse},
 };
 
 pub struct SpmRepository {
-    collection: Collection<Cage>,
+    cages: Collection<Cage>,
+    device_tokens: Collection<SpmDeviceToken>,
 }
 
 impl SpmRepository {
     pub fn new(db: Database) -> Self {
-        let collection = db.collection("cage");
+        let cages = db.collection("cage");
+        let device_tokens = db.collection("device_token");
 
-        Self { collection }
+        Self {
+            cages,
+            device_tokens,
+        }
     }
 
-    pub async fn create_new_cage(&self, cage: Cage) -> Result<Cage, ApiErrorResponse> {
-        let result = self.collection.insert_one(&cage).await;
+    pub async fn create_new_cage(
+        &self,
+        session: &mut ClientSession,
+        cage: Cage,
+        spm_device_token: SpmDeviceToken,
+    ) -> Result<Cage, ApiErrorResponse> {
+        match self
+            .device_tokens
+            .insert_one(&spm_device_token)
+            .session(&mut *session)
+            .await
+        {
+            Ok(_) => println!("Whatever"),
+            Err(err) if err.to_string().contains("E11000 duplicate key error") => {
+                return Err(ApiErrorResponse::new(
+                    400,
+                    String::from("Cage already exist"),
+                ))
+            }
+            Err(err) => return Err(ApiErrorResponse::new(500, err.to_string())),
+        };
 
-        match result {
+        match self.cages.insert_one(&cage).session(&mut *session).await {
             Ok(_) => Ok(cage),
             Err(err) if err.to_string().contains("E11000 duplicate key error") => Err(
                 ApiErrorResponse::new(400, String::from("Cage already exist")),
@@ -32,13 +56,23 @@ impl SpmRepository {
 
     pub async fn find_cage_by_id(&self, id: &str) -> Result<Option<Cage>, ApiErrorResponse> {
         let filter = doc! { "_id": id };
-        let cage = self
-            .collection
+        let cage = self.cages.find_one(filter).await.map_err(internal_error)?;
+
+        Ok(cage)
+    }
+
+    pub async fn find_device_token_by_id(
+        &self,
+        id: &str,
+    ) -> Result<Option<SpmDeviceToken>, ApiErrorResponse> {
+        let filter = doc! { "_id": id };
+        let device_token = self
+            .device_tokens
             .find_one(filter)
             .await
             .map_err(internal_error)?;
 
-        Ok(cage)
+        Ok(device_token)
     }
 
     pub async fn find_all_users_cages(
@@ -47,7 +81,7 @@ impl SpmRepository {
     ) -> Result<Vec<Cage>, ApiErrorResponse> {
         let filter = doc! { "assigned_monitor": assigned_monitor };
 
-        let cursor = self.collection.find(filter).await.map_err(internal_error)?;
+        let cursor = self.cages.find(filter).await.map_err(internal_error)?;
         let cages: Vec<Cage> = cursor.try_collect().await.map_err(internal_error)?;
 
         Ok(cages)
@@ -75,7 +109,7 @@ impl SpmRepository {
         };
 
         let result = self
-            .collection
+            .cages
             .update_one(filter, update)
             .await
             .map_err(internal_error)?;

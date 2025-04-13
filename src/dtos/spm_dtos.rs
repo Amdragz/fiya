@@ -2,10 +2,7 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::{
-    models::spm::{Cage, ObjectRecognition, UpdateCage},
-    utils::helper::hash_id_with_secret,
-};
+use crate::models::spm::{Cage, ObjectRecognition, UpdateCage};
 
 #[derive(Deserialize, Validate)]
 pub struct AddNewCageDto {
@@ -19,9 +16,8 @@ pub struct AddNewCageDto {
 
 impl AddNewCageDto {
     pub fn to_model(self) -> Cage {
-        let id = hash_id_with_secret(&self.cage_id);
         Cage {
-            id,
+            id: self.cage_id,
             livestock_no: self.livestock_no,
             assigned_monitor: self.assigned_monitor,
             co2: 0,

@@ -4,9 +4,11 @@ use axum_extra::headers::UserAgent;
 use chrono::{DateTime, Utc};
 use dotenvy::dotenv;
 use hmac::{Hmac, Mac};
+use jsonwebtoken::encode;
 use rand::{distr::Alphanumeric, Rng};
-use sha2::Sha256;
+use sha2::{Digest, Sha256};
 use time::OffsetDateTime;
+use uuid::Uuid;
 
 pub fn generate_password(length: usize) -> String {
     rand::rng()
@@ -47,4 +49,34 @@ pub fn hash_id_with_secret(id: &str) -> String {
 
     let result_bytes = result.into_bytes();
     hex::encode(result_bytes)
+}
+
+pub fn generate_secure_device_token() -> (String, String) {
+    dotenv().ok();
+    let spm_secret = env::var("SPM_SECRET").expect("SPM_SECRET must be set");
+
+    let uuid = Uuid::new_v4().to_string();
+    let now = Utc::now().to_rfc3339();
+
+    let salt: String = rand::rng()
+        .sample_iter(&Alphanumeric)
+        .take(32)
+        .map(char::from)
+        .collect();
+
+    let temp_token = format!("{}:{}:{}", uuid, now, salt);
+
+    let mut mac1 = Hmac::<Sha256>::new_from_slice(spm_secret.as_bytes())
+        .expect("hmac can only accept secret of a perticular length");
+    mac1.update(temp_token.as_bytes());
+    let result1 = mac1.finalize().into_bytes();
+    let device_token = hex::encode(result1);
+
+    let mut mac2 = Hmac::<Sha256>::new_from_slice(spm_secret.as_bytes())
+        .expect("hmac can only accept secret of a perticular length");
+    mac2.update(device_token.as_bytes());
+    let result2 = mac2.finalize().into_bytes();
+    let hashed_token = hex::encode(result2);
+
+    (device_token, hashed_token)
 }
