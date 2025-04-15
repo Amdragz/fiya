@@ -20,7 +20,7 @@ impl AddNewCageDto {
             id: self.cage_id,
             livestock_no: self.livestock_no,
             assigned_monitor: self.assigned_monitor,
-            co2: 0,
+            co2: 0.0,
             ammonia: 0.0,
             humidity: 0.0,
             pressure: 0.0,
@@ -43,7 +43,7 @@ pub struct UpdateCageDto {
     pub humidity: f32,
     pub pressure: f32,
     pub ammonia: f32,
-    pub co2: u32,
+    pub co2: f32,
     pub object_recognition: ObjectRecognition,
 }
 
@@ -70,7 +70,7 @@ pub struct CageDto {
     pub humidity: f32,
     pub pressure: f32,
     pub ammonia: f32,
-    pub co2: u32,
+    pub co2: f32,
     pub object_recognition: ObjectRecognition,
     pub created_at: String,
     pub updated_at: String,

@@ -11,7 +11,7 @@ pub struct Cage {
     pub humidity: f32,
     pub pressure: f32,
     pub ammonia: f32,
-    pub co2: u32,
+    pub co2: f32,
     pub object_recognition: ObjectRecognition,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub created_at: DateTime<Utc>,
@@ -30,7 +30,7 @@ pub struct CageWithDeviceToken {
     pub humidity: f32,
     pub pressure: f32,
     pub ammonia: f32,
-    pub co2: u32,
+    pub co2: f32,
     pub object_recognition: ObjectRecognition,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub created_at: DateTime<Utc>,
@@ -52,7 +52,7 @@ pub struct UpdateCage {
     pub humidity: f32,
     pub pressure: f32,
     pub ammonia: f32,
-    pub co2: u32,
+    pub co2: f32,
     pub object_recognition: ObjectRecognition,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub updated_at: DateTime<Utc>,
