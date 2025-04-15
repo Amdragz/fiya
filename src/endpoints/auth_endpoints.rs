@@ -1,6 +1,11 @@
 use std::sync::Arc;
 
-use axum::{extract::State, middleware, routing::post, Extension, Json, Router};
+use axum::{
+    extract::State,
+    middleware,
+    routing::{get, post},
+    Extension, Json, Router,
+};
 use axum_extra::{extract::CookieJar, headers::UserAgent, TypedHeader};
 
 use crate::{
@@ -8,7 +13,7 @@ use crate::{
         ChangePasswordDto, LoginDto, LoginSuccessDto, RefreshTokenRequestDto, UpdatePasswordDto,
     },
     middleware::auth_middleware,
-    models::user::AuthUserDto,
+    models::user::{AuthUserDto, NewUser},
     services::auth_service::AuthService,
     utils::{
         response::{ApiErrorResponse, ApiSuccessResponse, AuthLoginSuccessResponse},
@@ -29,6 +34,10 @@ pub fn auth_endpoints() -> Router<Arc<AppState>> {
         .route(
             "/change-password",
             post(change_user_password).layer(middleware::from_fn(auth_middleware::requires_auth)),
+        )
+        .route(
+            "/user",
+            get(get_authenticated_user).layer(middleware::from_fn(auth_middleware::requires_auth)),
         )
 }
 
@@ -74,4 +83,12 @@ async fn change_user_password(
     auth_service
         .change_user_password(auth_user.id, payload)
         .await
+}
+
+async fn get_authenticated_user(
+    State(app_state): State<Arc<AppState>>,
+    Extension(auth_user): Extension<AuthUserDto>,
+) -> Result<ApiSuccessResponse<NewUser>, ApiErrorResponse> {
+    let auth_service = AuthService::new(app_state.mongo_client.clone());
+    auth_service.get_authenticated_user(auth_user.id).await
 }
