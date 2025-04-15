@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use futures::FutureExt;
 use mongodb::Client;
 
 use crate::{
@@ -42,7 +41,7 @@ impl SpmService {
         let (device_token, hashed_device_token) = generate_secure_device_token();
 
         let spm_device_token = SpmDeviceToken {
-            id: cage.id.clone(),
+            id: cage.cage_id.clone(),
             token: hashed_device_token,
             created_at: Utc::now(),
             updated_at: Utc::now(),
@@ -67,7 +66,8 @@ impl SpmService {
 
         let new_cage = new_cage_result?;
         let cage_with_device_token = CageWithDeviceToken {
-            id: new_cage.id,
+            id: new_cage.id.to_string(),
+            cage_id: new_cage.cage_id,
             device_token,
             assigned_monitor: new_cage.assigned_monitor,
             livestock_no: new_cage.livestock_no,
@@ -77,6 +77,7 @@ impl SpmService {
             ammonia: new_cage.ammonia,
             co2: new_cage.co2,
             object_recognition: new_cage.object_recognition,
+            timestamp: new_cage.timestamp,
             created_at: new_cage.created_at,
             updated_at: new_cage.updated_at,
         };
@@ -124,7 +125,7 @@ impl SpmService {
             return Err(ApiErrorResponse::new(403, String::from("Unauthorized")));
         }
 
-        let found_cage = match spm_repo.find_cage_by_id(&cage_id).await? {
+        let found_cage = match spm_repo.find_cage_by_cage_id(&cage_id).await? {
             Some(cage) => cage,
             None => {
                 return Err(ApiErrorResponse::new(
@@ -134,10 +135,12 @@ impl SpmService {
             }
         };
 
-        let update_cage = update_cage_dto.to_model();
-        let _ = spm_repo
-            .update_cage_by_id(&found_cage.id, update_cage)
-            .await?;
+        let update_cage = update_cage_dto.to_model(
+            found_cage.cage_id,
+            found_cage.livestock_no,
+            found_cage.assigned_monitor,
+        );
+        let _ = spm_repo.add_cage_new_info(update_cage).await?;
 
         Ok(ApiSuccessResponse::new(
             String::from("Succesfully updated cage info"),

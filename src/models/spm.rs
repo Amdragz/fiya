@@ -1,10 +1,12 @@
+use bson::oid::ObjectId;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Cage {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: ObjectId,
+    pub cage_id: String,
     pub assigned_monitor: String,
     pub livestock_no: u32,
     pub temperature: f32,
@@ -13,6 +15,8 @@ pub struct Cage {
     pub ammonia: f32,
     pub co2: f32,
     pub object_recognition: ObjectRecognition,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
+    pub timestamp: DateTime<Utc>,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub created_at: DateTime<Utc>,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
@@ -23,6 +27,7 @@ pub struct Cage {
 pub struct CageWithDeviceToken {
     #[serde(rename = "_id")]
     pub id: String,
+    pub cage_id: String,
     pub device_token: String,
     pub assigned_monitor: String,
     pub livestock_no: u32,
@@ -32,6 +37,8 @@ pub struct CageWithDeviceToken {
     pub ammonia: f32,
     pub co2: f32,
     pub object_recognition: ObjectRecognition,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
+    pub timestamp: DateTime<Utc>,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub created_at: DateTime<Utc>,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
@@ -54,6 +61,8 @@ pub struct UpdateCage {
     pub ammonia: f32,
     pub co2: f32,
     pub object_recognition: ObjectRecognition,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
+    pub timestamp: DateTime<Utc>,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub updated_at: DateTime<Utc>,
 }

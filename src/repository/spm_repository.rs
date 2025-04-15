@@ -3,7 +3,7 @@ use futures::TryStreamExt;
 use mongodb::{ClientSession, Collection, Database};
 
 use crate::{
-    models::spm::{Cage, SpmDeviceToken, UpdateCage},
+    models::spm::{Cage, SpmDeviceToken},
     utils::{error_handler::internal_error, response::ApiErrorResponse},
 };
 
@@ -39,7 +39,7 @@ impl SpmRepository {
             Err(err) if err.to_string().contains("E11000 duplicate key error") => {
                 return Err(ApiErrorResponse::new(
                     400,
-                    String::from("Cage already exist"),
+                    String::from("Device token already exist"),
                 ))
             }
             Err(err) => return Err(ApiErrorResponse::new(500, err.to_string())),
@@ -54,8 +54,8 @@ impl SpmRepository {
         }
     }
 
-    pub async fn find_cage_by_id(&self, id: &str) -> Result<Option<Cage>, ApiErrorResponse> {
-        let filter = doc! { "_id": id };
+    pub async fn find_cage_by_cage_id(&self, id: &str) -> Result<Option<Cage>, ApiErrorResponse> {
+        let filter = doc! { "cage_id": id };
         let cage = self.cages.find_one(filter).await.map_err(internal_error)?;
 
         Ok(cage)
@@ -87,40 +87,15 @@ impl SpmRepository {
         Ok(cages)
     }
 
-    pub async fn update_cage_by_id(
-        &self,
-        cage_id: &str,
-        update_cage: UpdateCage,
-    ) -> Result<UpdateCage, ApiErrorResponse> {
-        let filter = doc! { "_id": cage_id };
-        let update = doc! {
-            "$set":
-            {
-                "temperature": update_cage.temperature,
-                "humidity": update_cage.humidity,
-                "pressure": update_cage.pressure,
-                "ammonia": update_cage.ammonia,
-                "co2": update_cage.co2,
-                "coccidiosis": update_cage.object_recognition.coccidiosis,
-                "newcastle": update_cage.object_recognition.newcastle,
-                "salmonella": update_cage.object_recognition.salmonella,
-                "healthy": update_cage.object_recognition.healthy
-            }
-        };
+    pub async fn add_cage_new_info(&self, new_cage_info: Cage) -> Result<Cage, ApiErrorResponse> {
+        let result = self.cages.insert_one(&new_cage_info).await;
 
-        let result = self
-            .cages
-            .update_one(filter, update)
-            .await
-            .map_err(internal_error)?;
-
-        match (result.matched_count, result.modified_count) {
-            (0, _) => Err(ApiErrorResponse::new(404, String::from("user not found"))),
-            (_, 0) => Err(ApiErrorResponse::new(
-                200,
-                String::from("No changes made to the data"),
-            )),
-            _ => Ok(update_cage),
+        match result {
+            Ok(_) => Ok(new_cage_info),
+            Err(err) if err.to_string().contains("E11000 duplicate key error") => Err(
+                ApiErrorResponse::new(400, "Cage already exists".to_string()),
+            ),
+            Err(err) => Err(internal_error(err)),
         }
     }
 }
