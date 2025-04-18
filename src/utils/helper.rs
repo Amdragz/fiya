@@ -4,9 +4,8 @@ use axum_extra::headers::UserAgent;
 use chrono::{DateTime, Utc};
 use dotenvy::dotenv;
 use hmac::{Hmac, Mac};
-use jsonwebtoken::encode;
 use rand::{distr::Alphanumeric, Rng};
-use sha2::{Digest, Sha256};
+use sha2::Sha256;
 use time::OffsetDateTime;
 use uuid::Uuid;
 

@@ -16,7 +16,10 @@ use crate::{
     models::user::{AuthUserDto, NewUser},
     services::auth_service::AuthService,
     utils::{
-        response::{ApiErrorResponse, ApiSuccessResponse, AuthLoginSuccessResponse},
+        response::{
+            ApiErrorResponse, ApiSuccessResponse, AuthLoginSuccessResponse,
+            AuthLogoutSuccessResponse,
+        },
         validators::ValidatedJson,
     },
     AppState,
@@ -25,6 +28,10 @@ use crate::{
 pub fn auth_endpoints() -> Router<Arc<AppState>> {
     Router::new()
         .route("/login", post(login))
+        .route(
+            "/logout",
+            post(logout).layer(middleware::from_fn(auth_middleware::requires_auth)),
+        )
         .route("/refresh-token", post(refresh_user_token))
         .route(
             "/update-password",
@@ -48,6 +55,14 @@ async fn login(
 ) -> Result<AuthLoginSuccessResponse<LoginSuccessDto>, ApiErrorResponse> {
     let auth_service = AuthService::new(app_state.mongo_client.clone());
     auth_service.login(user_agent, payload).await
+}
+
+async fn logout(
+    State(app_state): State<Arc<AppState>>,
+    Extension(auth_user): Extension<AuthUserDto>,
+) -> Result<AuthLogoutSuccessResponse, ApiErrorResponse> {
+    let auth_service = AuthService::new(app_state.mongo_client.clone());
+    auth_service.logout(auth_user.id).await
 }
 
 async fn refresh_user_token(
