@@ -1,6 +1,6 @@
 use mongodb::{
     bson::{doc, oid::ObjectId},
-    options::IndexOptions,
+    options::{IndexOptions, ReplaceOptions},
     Collection, Database, IndexModel,
 };
 
@@ -108,6 +108,7 @@ impl UserRepository {
     ) -> Result<RefreshToken, ApiErrorResponse> {
         self.refresh_tokens
             .replace_one(doc! { "user_id": &refresh_token.user_id }, &refresh_token)
+            .upsert(true)
             .await
             .map_err(internal_error)?;
         Ok(refresh_token)
@@ -123,7 +124,7 @@ impl UserRepository {
         Ok(())
     }
 
-    pub async fn find_valid_user_refresh_token_by_id(
+    pub async fn find_valid_user_refresh_token_by_user_id(
         &self,
         id: &str,
     ) -> Result<Option<RefreshToken>, ApiErrorResponse> {
@@ -131,7 +132,7 @@ impl UserRepository {
 
         let refresh_token = self
             .refresh_tokens
-            .find_one(doc! { "_id": id  })
+            .find_one(doc! { "user_id": id  })
             .await
             .map_err(internal_error)?;
         Ok(refresh_token)

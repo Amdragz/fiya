@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RefreshToken {
-    #[serde(rename = "_id")]
-    pub id: ObjectId,
     pub user_id: ObjectId,
     pub refresh_token: String,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
