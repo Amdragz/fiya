@@ -9,6 +9,7 @@ use axum::{
 use axum_extra::extract::cookie::{Cookie, Expiration};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
+use time::Duration;
 
 #[derive(Serialize)]
 pub struct ApiSuccessResponse<T> {
@@ -86,6 +87,33 @@ where
             }
             None => json.into_response(),
         }
+    }
+}
+
+#[derive(Serialize)]
+pub struct AuthLogoutSuccessResponse {
+    message: String,
+}
+
+impl AuthLogoutSuccessResponse {
+    pub fn new(message: String) -> Self {
+        Self { message }
+    }
+}
+
+impl IntoResponse for AuthLogoutSuccessResponse {
+    fn into_response(self) -> axum::response::Response {
+        let json = Json(self);
+        let cookie = Cookie::build(("refresh_token", ""))
+            .http_only(true)
+            .max_age(Duration::ZERO)
+            .path("/");
+        Response::builder()
+            .status(StatusCode::OK)
+            .header(header::CONTENT_TYPE, "application/json")
+            .header(header::SET_COOKIE, cookie.to_string())
+            .body(json.into_response().into_body())
+            .unwrap()
     }
 }
 

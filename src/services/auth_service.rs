@@ -17,7 +17,10 @@ use crate::{
         error_handler::{bad_request_error, http_error, internal_error, invalid_credentials_error},
         helper::is_browser,
         jwt::{self, RefreshTokenClaims},
-        response::{ApiErrorResponse, ApiSuccessResponse, AuthLoginSuccessResponse},
+        response::{
+            ApiErrorResponse, ApiSuccessResponse, AuthLoginSuccessResponse,
+            AuthLogoutSuccessResponse,
+        },
     },
 };
 
@@ -76,7 +79,7 @@ impl AuthService {
                 .map_err(invalid_credentials_error)?;
 
         user_repo
-            .create_refresh_token(RefreshToken {
+            .create_user_refresh_token(RefreshToken {
                 id: refresh_token_id,
                 user_id,
                 refresh_token: refresh_token.clone(),
@@ -146,7 +149,7 @@ impl AuthService {
                     .map_err(bad_request_error)?;
 
             let _ = user_repo
-                .create_refresh_token(RefreshToken {
+                .create_user_refresh_token(RefreshToken {
                     id: ObjectId::new(),
                     user_id,
                     refresh_token: refresh_token.clone(),
@@ -174,6 +177,25 @@ impl AuthService {
                 "Invalid refresh token request".to_string(),
             ))
         }
+    }
+
+    pub async fn logout(
+        &self,
+        user_id: String,
+    ) -> Result<AuthLogoutSuccessResponse, ApiErrorResponse> {
+        let db = self.client.database("fiyadb");
+        let user_repo = UserRepository::new(&db);
+
+        let _ = user_repo
+            .delete_user_refresh_token(user_id)
+            .await
+            .map_err(|_| {
+                ApiErrorResponse::new(500, String::from("logout operation not successful"))
+            });
+
+        Ok(AuthLogoutSuccessResponse::new(String::from(
+            "Logout successful",
+        )))
     }
 
     pub async fn get_authenticated_user(

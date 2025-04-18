@@ -29,7 +29,7 @@ pub fn spm_endpoints() -> Router<Arc<AppState>> {
             post(update_cage_info).layer(middleware::from_fn(auth_middleware::requires_spm_auth)),
         )
         .route(
-            "/cages/:assined_monitor",
+            "/cages",
             get(fetch_all_users_cages).layer(middleware::from_fn(auth_middleware::requires_auth)),
         )
 }
@@ -57,9 +57,8 @@ pub async fn update_cage_info(
 
 pub async fn fetch_all_users_cages(
     State(app_sate): State<Arc<AppState>>,
-    Extension(_): Extension<AuthUserDto>,
-    Path(assigned_monitor): Path<String>,
+    Extension(auth_user): Extension<AuthUserDto>,
 ) -> Result<ApiSuccessResponse<Vec<CageDto>>, ApiErrorResponse> {
     let spm_service = SpmService::new(app_sate.mongo_client.clone());
-    spm_service.fetch_all_users_cages(assigned_monitor).await
+    spm_service.fetch_all_users_cages(auth_user.id).await
 }

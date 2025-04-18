@@ -13,32 +13,32 @@ use crate::{
 };
 
 pub struct UserRepository {
-    collection: Collection<User>,
-    token_collection: Collection<RefreshToken>,
+    users: Collection<User>,
+    refresh_tokens: Collection<RefreshToken>,
 }
 
 impl UserRepository {
     pub fn new(db: &Database) -> Self {
-        let collection = db.collection::<User>("users");
-        let token_collection = db.collection::<RefreshToken>("tokens");
+        let users = db.collection::<User>("users");
+        let refresh_tokens = db.collection::<RefreshToken>("tokens");
         Self {
-            collection,
-            token_collection,
+            users,
+            refresh_tokens,
         }
     }
 
     pub async fn new_async(db: &Database) -> Result<Self, ApiErrorResponse> {
-        let collection = db.collection::<User>("users");
-        let token_collection = db.collection::<RefreshToken>("tokens");
-        ensure_indexes(&collection).await?;
+        let users = db.collection::<User>("users");
+        let refresh_tokens = db.collection::<RefreshToken>("tokens");
+        ensure_indexes(&users).await?;
         Ok(Self {
-            collection,
-            token_collection,
+            users,
+            refresh_tokens,
         })
     }
 
     pub async fn create_user(&self, new_user: User) -> Result<NewUser, ApiErrorResponse> {
-        let result = self.collection.insert_one(&new_user).await;
+        let result = self.users.insert_one(&new_user).await;
 
         match result {
             Ok(_) => Ok(NewUser {
@@ -63,7 +63,7 @@ impl UserRepository {
     pub async fn find_user_by_id(&self, id: &str) -> Result<Option<User>, ApiErrorResponse> {
         let obj_id = ObjectId::parse_str(id).map_err(internal_error)?;
         let user = self
-            .collection
+            .users
             .find_one(doc! {
                 "_id": obj_id,
             })
@@ -79,7 +79,7 @@ impl UserRepository {
     ) -> Result<Option<User>, ApiErrorResponse> {
         let obj_id = ObjectId::parse_str(&admin_id).map_err(internal_error)?;
         let admin_user = self
-            .collection
+            .users
             .find_one(doc! {
                 "_id": obj_id,
                 "type": "admin"
@@ -92,7 +92,7 @@ impl UserRepository {
 
     pub async fn find_user_by_email(&self, email: &str) -> Result<Option<User>, ApiErrorResponse> {
         let user = self
-            .collection
+            .users
             .find_one(doc! {
                 "email": email
             })
@@ -102,15 +102,25 @@ impl UserRepository {
         Ok(user)
     }
 
-    pub async fn create_refresh_token(
+    pub async fn create_user_refresh_token(
         &self,
         refresh_token: RefreshToken,
     ) -> Result<RefreshToken, ApiErrorResponse> {
-        self.token_collection
-            .insert_one(&refresh_token)
+        self.refresh_tokens
+            .replace_one(doc! { "user_id": &refresh_token.user_id }, &refresh_token)
             .await
             .map_err(internal_error)?;
         Ok(refresh_token)
+    }
+
+    pub async fn delete_user_refresh_token(&self, user_id: String) -> Result<(), ApiErrorResponse> {
+        let user_obj_id = ObjectId::parse_str(user_id).map_err(internal_error)?;
+        let filter = doc! { "user_id": user_obj_id };
+        self.refresh_tokens
+            .delete_one(filter)
+            .await
+            .map_err(internal_error)?;
+        Ok(())
     }
 
     pub async fn find_valid_user_refresh_token_by_id(
@@ -120,7 +130,7 @@ impl UserRepository {
         let id = ObjectId::parse_str(id).map_err(internal_error)?;
 
         let refresh_token = self
-            .token_collection
+            .refresh_tokens
             .find_one(doc! { "_id": id  })
             .await
             .map_err(internal_error)?;
@@ -137,7 +147,7 @@ impl UserRepository {
         let update = doc! { "$set": { "password": new_password }  };
 
         let result = self
-            .collection
+            .users
             .update_one(filter, update)
             .await
             .map_err(internal_error)?;
@@ -153,14 +163,14 @@ impl UserRepository {
     }
 }
 
-pub async fn ensure_indexes(collection: &Collection<User>) -> Result<(), ApiErrorResponse> {
+pub async fn ensure_indexes(users: &Collection<User>) -> Result<(), ApiErrorResponse> {
     let index_options = IndexOptions::builder().unique(true).build();
     let index_model = IndexModel::builder()
         .keys(doc! { "email": 1 })
         .options(index_options)
         .build();
 
-    collection
+    users
         .create_index(index_model)
         .await
         .map_err(internal_error)?;
