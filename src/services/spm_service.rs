@@ -1,16 +1,17 @@
-use std::sync::Arc;
+use std::{io::Cursor, sync::Arc};
 
 use chrono::Utc;
+use csv::WriterBuilder;
 use mongodb::Client;
 
 use crate::{
-    dtos::spm_dtos::{AddNewCageDto, CageDto, UpdateCageDto},
+    dtos::spm_dtos::{AddNewCageDto, CageCsvDto, CageDto, UpdateCageDto},
     models::spm::{CageWithDeviceToken, SpmDeviceToken},
     repository::{spm_repository::SpmRepository, user_repository::UserRepository},
     utils::{
-        error_handler::internal_error,
+        error_handler::{internal_error, internal_server_error},
         helper::{generate_secure_device_token, hash_id_with_secret},
-        response::{ApiErrorResponse, ApiSuccessResponse},
+        response::{ApiErrorResponse, ApiSuccessResponse, SpmDownloadCsvSuccessResponse},
     },
 };
 
@@ -30,7 +31,7 @@ impl SpmService {
     ) -> Result<ApiSuccessResponse<CageWithDeviceToken>, ApiErrorResponse> {
         let db = self.client.database("fiyadb");
         let user_repo = UserRepository::new(&db);
-        let spm_repo = SpmRepository::new(db);
+        let spm_repo = SpmRepository::new(&db);
 
         match user_repo.find_user_by_id(&user_id).await? {
             Some(user) => user,
@@ -94,7 +95,7 @@ impl SpmService {
         assigned_monitor: String,
     ) -> Result<ApiSuccessResponse<Vec<CageDto>>, ApiErrorResponse> {
         let db = self.client.database("fiyadb");
-        let spm_repo = SpmRepository::new(db);
+        let spm_repo = SpmRepository::new(&db);
 
         let cages = spm_repo.find_all_users_cages(assigned_monitor).await?;
         let cage_dtos = cages.into_iter().map(CageDto::from).collect();
@@ -113,7 +114,7 @@ impl SpmService {
         device_token: String,
     ) -> Result<ApiSuccessResponse<()>, ApiErrorResponse> {
         let db = self.client.database("fiyadb");
-        let spm_repo = SpmRepository::new(db);
+        let spm_repo = SpmRepository::new(&db);
 
         let found_spm_device_token = match spm_repo.find_device_token_by_id(&cage_id).await? {
             Some(spm_device_token) => spm_device_token,
@@ -147,5 +148,36 @@ impl SpmService {
             (),
             None,
         ))
+    }
+
+    pub async fn generate_csv_file(
+        &self,
+        id: String,
+    ) -> Result<SpmDownloadCsvSuccessResponse, ApiErrorResponse> {
+        let db = self.client.database("fiyadb");
+        let spm_repo = SpmRepository::new(&db);
+        let user_repo = UserRepository::new(&db);
+
+        let found_user = match user_repo.find_user_by_id(&id).await? {
+            Some(user) => user,
+            None => return Err(ApiErrorResponse::new(403, String::from("Unauthorized"))),
+        };
+
+        let cages = spm_repo
+            .find_all_users_cages(found_user.id.to_string())
+            .await?;
+        let mut wrt = WriterBuilder::new().from_writer(Cursor::new(Vec::new()));
+
+        for cage in cages {
+            let cage_csv = CageCsvDto::from(cage);
+            wrt.serialize(cage_csv).map_err(internal_error)?;
+        }
+
+        let cage_csv = wrt
+            .into_inner()
+            .map(|cursor| cursor.into_inner())
+            .map_err(|err| internal_server_error(err, "Error creating csv from recors"))?;
+
+        Ok(SpmDownloadCsvSuccessResponse::new(cage_csv))
     }
 }

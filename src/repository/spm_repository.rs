@@ -13,7 +13,7 @@ pub struct SpmRepository {
 }
 
 impl SpmRepository {
-    pub fn new(db: Database) -> Self {
+    pub fn new(db: &Database) -> Self {
         let cages = db.collection("cage");
         let device_tokens = db.collection("device_token");
 
