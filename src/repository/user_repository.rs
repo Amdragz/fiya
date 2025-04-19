@@ -1,6 +1,6 @@
 use mongodb::{
     bson::{doc, oid::ObjectId},
-    options::{IndexOptions, ReplaceOptions},
+    options::IndexOptions,
     Collection, Database, IndexModel,
 };
 

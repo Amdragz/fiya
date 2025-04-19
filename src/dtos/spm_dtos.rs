@@ -107,3 +107,47 @@ impl From<Cage> for CageDto {
         }
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CageCsvDto {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub cage_id: String,
+    pub assigned_monitor: String,
+    pub livestock_no: u32,
+    pub temperature: f32,
+    pub humidity: f32,
+    pub pressure: f32,
+    pub ammonia: f32,
+    pub co2: f32,
+    pub coccidiosis: f32,
+    pub newcastle: f32,
+    pub salmonella: f32,
+    pub healthy: f32,
+    pub timestamp: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+impl From<Cage> for CageCsvDto {
+    fn from(cage: Cage) -> Self {
+        CageCsvDto {
+            id: cage.id.to_string(),
+            cage_id: cage.cage_id,
+            assigned_monitor: cage.assigned_monitor,
+            livestock_no: cage.livestock_no,
+            temperature: cage.temperature,
+            humidity: cage.humidity,
+            pressure: cage.pressure,
+            ammonia: cage.ammonia,
+            co2: cage.co2,
+            coccidiosis: cage.object_recognition.coccidiosis,
+            newcastle: cage.object_recognition.newcastle,
+            salmonella: cage.object_recognition.salmonella,
+            healthy: cage.object_recognition.healthy,
+            timestamp: cage.timestamp.to_rfc3339(),
+            created_at: cage.created_at.to_rfc3339(),
+            updated_at: cage.updated_at.to_rfc3339(),
+        }
+    }
+}

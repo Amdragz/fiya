@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use super::helper::datetime_to_offset_datetime;
 use axum::{
-    http::{header, Response, StatusCode},
-    response::IntoResponse,
+    body::Body,
+    http::{header, HeaderValue, StatusCode},
+    response::{IntoResponse, Response},
     Json,
 };
 use axum_extra::extract::cookie::{Cookie, Expiration};
@@ -113,6 +114,31 @@ impl IntoResponse for AuthLogoutSuccessResponse {
             .header(header::CONTENT_TYPE, "application/json")
             .header(header::SET_COOKIE, cookie.to_string())
             .body(json.into_response().into_body())
+            .unwrap()
+    }
+}
+
+#[derive(Serialize)]
+pub struct SpmDownloadCsvSuccessResponse {
+    pub data: Vec<u8>,
+}
+
+impl SpmDownloadCsvSuccessResponse {
+    pub fn new(data: Vec<u8>) -> Self {
+        Self { data }
+    }
+}
+
+impl IntoResponse for SpmDownloadCsvSuccessResponse {
+    fn into_response(self) -> axum::response::Response {
+        Response::builder()
+            .status(StatusCode::OK)
+            .header(header::CONTENT_TYPE, HeaderValue::from_static("text/csv"))
+            .header(
+                header::CONTENT_DISPOSITION,
+                HeaderValue::from_static("attachment; filename=\"cage_data.csv\""),
+            )
+            .body(Body::from(self.data))
             .unwrap()
     }
 }
