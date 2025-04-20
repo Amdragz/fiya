@@ -78,9 +78,9 @@ impl SpmService {
             ammonia: new_cage.ammonia,
             co2: new_cage.co2,
             object_recognition: new_cage.object_recognition,
-            timestamp: new_cage.timestamp,
-            created_at: new_cage.created_at,
-            updated_at: new_cage.updated_at,
+            timestamp: new_cage.timestamp.to_rfc3339(),
+            created_at: new_cage.created_at.to_rfc3339(),
+            updated_at: new_cage.updated_at.to_rfc3339(),
         };
 
         Ok(ApiSuccessResponse::new(
