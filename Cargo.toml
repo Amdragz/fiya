@@ -32,6 +32,7 @@ hex = "0.4.3"
 uuid = { version = "1.13.2", features = ["v4"]}
 csv = "1.3.1"
 genpdf = "0.2.0"
+project-root = "0.2.2"
 
 [dependencies.mongodb]
 version = "3.2.3"

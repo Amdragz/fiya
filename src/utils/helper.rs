@@ -9,6 +9,7 @@ use genpdf::{
     Document,
 };
 use hmac::{Hmac, Mac};
+use project_root::get_project_root;
 use rand::{distr::Alphanumeric, Rng};
 use sha2::Sha256;
 use time::OffsetDateTime;
@@ -88,12 +89,12 @@ pub fn generate_secure_device_token() -> (String, String) {
 }
 
 pub fn generate_pdf_for_cage_data(cages: Vec<Cage>) -> Result<Vec<u8>, genpdf::error::Error> {
-    let font_family = from_files(
-        "/home/ahmed_ogaji/Desktop/dev/fiya/fonts",
-        "LiberationSans",
-        None,
-    )
-    .expect("Failed to load font family");
+    let root_path = get_project_root().expect("Failed to get project root");
+    let font_path = root_path.join("fonts");
+
+    let font_family =
+        from_files(font_path, "LiberationSans", None).expect("Failed to load font family");
+
     let mut doc = Document::new(font_family);
     doc.set_title("Smart poultry monitor cage data");
 
