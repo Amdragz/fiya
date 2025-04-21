@@ -143,6 +143,34 @@ impl IntoResponse for SpmDownloadCsvSuccessResponse {
     }
 }
 
+#[derive(Serialize)]
+pub struct SpmDownloadPdfSuccessResponse {
+    pub data: Vec<u8>,
+}
+
+impl SpmDownloadPdfSuccessResponse {
+    pub fn new(data: Vec<u8>) -> Self {
+        Self { data }
+    }
+}
+
+impl IntoResponse for SpmDownloadPdfSuccessResponse {
+    fn into_response(self) -> axum::response::Response {
+        Response::builder()
+            .status(StatusCode::OK)
+            .header(
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("application/pdf"),
+            )
+            .header(
+                header::CONTENT_DISPOSITION,
+                HeaderValue::from_static("attachment; filename=\"cage_data.pdf\""),
+            )
+            .body(Body::from(self.data))
+            .unwrap()
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct ApiErrorResponse {
     status: u16,
