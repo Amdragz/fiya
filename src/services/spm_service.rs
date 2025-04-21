@@ -5,13 +5,18 @@ use csv::WriterBuilder;
 use mongodb::Client;
 
 use crate::{
-    dtos::spm_dtos::{AddNewCageDto, CageCsvDto, CageDto, UpdateCageDto},
+    dtos::spm_dtos::{
+        AddNewCageDto, CageCsvDto, CageDto, DownloadCageReportDto, FileType, UpdateCageDto,
+    },
     models::spm::{CageWithDeviceToken, SpmDeviceToken},
     repository::{spm_repository::SpmRepository, user_repository::UserRepository},
     utils::{
         error_handler::{internal_error, internal_server_error},
-        helper::{generate_secure_device_token, hash_id_with_secret},
-        response::{ApiErrorResponse, ApiSuccessResponse, SpmDownloadCsvSuccessResponse},
+        helper::{generate_pdf_for_cage_data, generate_secure_device_token, hash_id_with_secret},
+        response::{
+            ApiErrorResponse, ApiSuccessResponse, SpmDownloadCsvSuccessResponse,
+            SpmDownloadPdfSuccessResponse,
+        },
     },
 };
 
@@ -150,7 +155,62 @@ impl SpmService {
         ))
     }
 
-    pub async fn generate_csv_file(
+    pub async fn generate_cage_report_in_csv_format(
+        &self,
+        id: String,
+        payload: DownloadCageReportDto,
+    ) -> Result<SpmDownloadCsvSuccessResponse, ApiErrorResponse> {
+        let db = self.client.database("fiyadb");
+        let user_repo = UserRepository::new(&db);
+        let spm_repo = SpmRepository::new(&db);
+
+        match user_repo.find_user_by_id(&id).await? {
+            Some(user) => user,
+            None => return Err(ApiErrorResponse::new(401, String::from("Unauthorized"))),
+        };
+
+        let cages = spm_repo
+            .find_cage_data_by_date_range(&payload.cage_id, payload.start_date, payload.end_date)
+            .await?;
+
+        let mut wrt = WriterBuilder::new().from_writer(Cursor::new(Vec::new()));
+
+        cages
+            .iter()
+            .try_for_each(|cage| wrt.serialize(CageCsvDto::from(cage.clone())))
+            .map_err(internal_error)?;
+
+        let cage_csv = wrt
+            .into_inner()
+            .map(|cursor| cursor.into_inner())
+            .map_err(|err| internal_server_error(err, "Error creating csv from recors"))?;
+
+        Ok(SpmDownloadCsvSuccessResponse::new(cage_csv))
+    }
+
+    pub async fn generate_cage_report_in_pdf_format(
+        &self,
+        id: String,
+        payload: DownloadCageReportDto,
+    ) -> Result<SpmDownloadPdfSuccessResponse, ApiErrorResponse> {
+        let db = self.client.database("fiyadb");
+        let user_repo = UserRepository::new(&db);
+        let spm_repo = SpmRepository::new(&db);
+
+        match user_repo.find_user_by_id(&id).await? {
+            Some(user) => user,
+            None => return Err(ApiErrorResponse::new(401, String::from("Unauthorized"))),
+        };
+
+        let cages = spm_repo
+            .find_cage_data_by_date_range(&payload.cage_id, payload.start_date, payload.end_date)
+            .await?;
+
+        let pdf_data = generate_pdf_for_cage_data(cages).map_err(internal_error)?;
+        Ok(SpmDownloadPdfSuccessResponse::new(pdf_data))
+    }
+
+    pub async fn fetch_all_cage_data_in_csv_format(
         &self,
         id: String,
     ) -> Result<SpmDownloadCsvSuccessResponse, ApiErrorResponse> {
@@ -179,5 +239,25 @@ impl SpmService {
             .map_err(|err| internal_server_error(err, "Error creating csv from recors"))?;
 
         Ok(SpmDownloadCsvSuccessResponse::new(cage_csv))
+    }
+
+    pub async fn fetch_all_cage_data_in_pdf_format(
+        &self,
+        id: String,
+    ) -> Result<SpmDownloadPdfSuccessResponse, ApiErrorResponse> {
+        let db = self.client.database("fiyadb");
+        let spm_repo = SpmRepository::new(&db);
+        let user_repo = UserRepository::new(&db);
+
+        let found_user = match user_repo.find_user_by_id(&id).await? {
+            Some(user) => user,
+            None => return Err(ApiErrorResponse::new(403, String::from("Unauthorized"))),
+        };
+
+        let cages = spm_repo
+            .find_all_users_cages(found_user.id.to_string())
+            .await?;
+        let pdf_data = generate_pdf_for_cage_data(cages).map_err(internal_error)?;
+        Ok(SpmDownloadPdfSuccessResponse::new(pdf_data))
     }
 }

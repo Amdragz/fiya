@@ -1,12 +1,16 @@
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 
 use crate::{
-    dtos::spm_dtos::{AddNewCageDto, CageDto, UpdateCageDto},
+    dtos::spm_dtos::{AddNewCageDto, CageDto, DownloadCageReportDto, FileType, UpdateCageDto},
     middleware::auth_middleware::{self, SpmDeviceAuth},
     models::{spm::CageWithDeviceToken, user::AuthUserDto},
     services::spm_service::SpmService,
     utils::{
-        response::{ApiErrorResponse, ApiSuccessResponse, SpmDownloadCsvSuccessResponse},
+        error_handler::internal_error,
+        response::{
+            ApiErrorResponse, ApiSuccessResponse, SpmDownloadCsvSuccessResponse,
+            SpmDownloadPdfSuccessResponse,
+        },
         validators::ValidatedJson,
     },
     AppState,
@@ -14,6 +18,7 @@ use crate::{
 use axum::{
     extract::{Path, State},
     middleware,
+    response::IntoResponse,
     routing::{get, post},
     Extension, Router,
 };
@@ -31,8 +36,17 @@ pub fn spm_endpoints() -> Router<Arc<AppState>> {
             post(update_cage_info).layer(middleware::from_fn(auth_middleware::requires_spm_auth)),
         )
         .route(
-            "/report/csv",
+            "/report",
+            post(export_cage_data).layer(middleware::from_fn(auth_middleware::requires_auth)),
+        )
+        .route(
+            "/export/csv",
             get(download_cage_report_in_csv_format)
+                .layer(middleware::from_fn(auth_middleware::requires_auth)),
+        )
+        .route(
+            "/export/pdf",
+            get(download_cage_report_in_pdf_format)
                 .layer(middleware::from_fn(auth_middleware::requires_auth)),
         )
 }
@@ -71,5 +85,39 @@ pub async fn download_cage_report_in_csv_format(
     Extension(auth_user): Extension<AuthUserDto>,
 ) -> Result<SpmDownloadCsvSuccessResponse, ApiErrorResponse> {
     let spm_service = SpmService::new(app_sate.mongo_client.clone());
-    spm_service.generate_csv_file(auth_user.id).await
+    spm_service
+        .fetch_all_cage_data_in_csv_format(auth_user.id)
+        .await
+}
+
+pub async fn download_cage_report_in_pdf_format(
+    State(app_sate): State<Arc<AppState>>,
+    Extension(auth_user): Extension<AuthUserDto>,
+) -> Result<SpmDownloadPdfSuccessResponse, ApiErrorResponse> {
+    let spm_service = SpmService::new(app_sate.mongo_client.clone());
+    spm_service
+        .fetch_all_cage_data_in_pdf_format(auth_user.id)
+        .await
+}
+
+pub async fn export_cage_data(
+    State(app_sate): State<Arc<AppState>>,
+    Extension(auth_user): Extension<AuthUserDto>,
+    ValidatedJson(payload): ValidatedJson<DownloadCageReportDto>,
+) -> Result<impl IntoResponse, ApiErrorResponse> {
+    let spm_service = SpmService::new(app_sate.mongo_client.clone());
+    match FileType::from_str(&payload.file_type).map_err(internal_error)? {
+        FileType::Pdf => {
+            let pdf_response = spm_service
+                .generate_cage_report_in_pdf_format(auth_user.id, payload)
+                .await?;
+            Ok(pdf_response.into_response())
+        }
+        FileType::Csv => {
+            let csv_response = spm_service
+                .generate_cage_report_in_csv_format(auth_user.id, payload)
+                .await?;
+            Ok(csv_response.into_response())
+        }
+    }
 }

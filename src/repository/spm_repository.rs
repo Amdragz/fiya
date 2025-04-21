@@ -1,4 +1,5 @@
-use bson::doc;
+use bson::{doc, DateTime as BsonDateTime};
+use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
 use mongodb::{ClientSession, Collection, Database};
 
@@ -84,6 +85,25 @@ impl SpmRepository {
         let cursor = self.cages.find(filter).await.map_err(internal_error)?;
         let cages: Vec<Cage> = cursor.try_collect().await.map_err(internal_error)?;
 
+        Ok(cages)
+    }
+
+    pub async fn find_cage_data_by_date_range(
+        &self,
+        cage_id: &str,
+        start_date: DateTime<Utc>,
+        end_date: DateTime<Utc>,
+    ) -> Result<Vec<Cage>, ApiErrorResponse> {
+        let filter = doc! {
+            "cage_id": cage_id,
+            "created_at": {
+                "$gte": BsonDateTime::from_chrono(start_date),
+                "$lte": BsonDateTime::from_chrono(end_date),
+            }
+        };
+
+        let cage_cursor = self.cages.find(filter).await.map_err(internal_error)?;
+        let cages: Vec<Cage> = cage_cursor.try_collect().await.map_err(internal_error)?;
         Ok(cages)
     }
 

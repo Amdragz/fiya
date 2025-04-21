@@ -1,3 +1,5 @@
+use std::{fmt, str::FromStr};
+
 use bson::oid::ObjectId;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -150,4 +152,42 @@ impl From<Cage> for CageCsvDto {
             updated_at: cage.updated_at.to_rfc3339(),
         }
     }
+}
+
+pub enum FileType {
+    Csv,
+    Pdf,
+}
+
+#[derive(Debug, Clone)]
+pub struct ParseFileTypeError;
+
+impl fmt::Display for ParseFileTypeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Invalid file type")
+    }
+}
+
+impl std::error::Error for ParseFileTypeError {}
+
+impl FromStr for FileType {
+    type Err = ParseFileTypeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "csv" | "Csv" | "CSV" => Ok(FileType::Csv),
+            "pdf" | "Pdf" | "PDF" => Ok(FileType::Pdf),
+            _ => Err(ParseFileTypeError),
+        }
+    }
+}
+
+#[derive(Deserialize, Validate)]
+pub struct DownloadCageReportDto {
+    #[validate(length(min = 1, message = "cage id is required"))]
+    pub cage_id: String,
+    pub start_date: DateTime<Utc>,
+    pub end_date: DateTime<Utc>,
+    #[validate(length(min = 1, message = "file type is required"))]
+    pub file_type: String,
 }
