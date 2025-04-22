@@ -4,23 +4,26 @@ use futures::TryStreamExt;
 use mongodb::{ClientSession, Collection, Database};
 
 use crate::{
-    models::spm::{Cage, SpmDeviceToken},
+    models::spm::{Cage, HealthSettings, SpmDeviceToken},
     utils::{error_handler::internal_error, response::ApiErrorResponse},
 };
 
 pub struct SpmRepository {
     cages: Collection<Cage>,
     device_tokens: Collection<SpmDeviceToken>,
+    health_settings: Collection<HealthSettings>,
 }
 
 impl SpmRepository {
     pub fn new(db: &Database) -> Self {
         let cages = db.collection("cage");
         let device_tokens = db.collection("device_token");
+        let health_settings = db.collection("health_settings");
 
         Self {
             cages,
             device_tokens,
+            health_settings,
         }
     }
 
@@ -117,5 +120,20 @@ impl SpmRepository {
             ),
             Err(err) => Err(internal_error(err)),
         }
+    }
+
+    pub async fn update_health_settings(
+        &self,
+        health_settings: HealthSettings,
+    ) -> Result<HealthSettings, ApiErrorResponse> {
+        self.health_settings
+            .replace_one(
+                doc! { "cage_id": &health_settings.cage_id },
+                &health_settings,
+            )
+            .upsert(true)
+            .await
+            .map_err(internal_error)?;
+        Ok(health_settings)
     }
 }

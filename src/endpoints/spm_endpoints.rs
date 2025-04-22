@@ -1,9 +1,15 @@
 use std::{str::FromStr, sync::Arc};
 
 use crate::{
-    dtos::spm_dtos::{AddNewCageDto, CageDto, DownloadCageReportDto, FileType, UpdateCageDto},
+    dtos::spm_dtos::{
+        AddNewCageDto, CageDto, DownloadCageReportDto, FileType, UpdateCageDto,
+        UpdateHealthSettingsDto,
+    },
     middleware::auth_middleware::{self, SpmDeviceAuth},
-    models::{spm::CageWithDeviceToken, user::AuthUserDto},
+    models::{
+        spm::{CageWithDeviceToken, HealthSettings},
+        user::AuthUserDto,
+    },
     services::spm_service::SpmService,
     utils::{
         error_handler::internal_error,
@@ -47,6 +53,11 @@ pub fn spm_endpoints() -> Router<Arc<AppState>> {
         .route(
             "/export/pdf",
             get(download_cage_report_in_pdf_format)
+                .layer(middleware::from_fn(auth_middleware::requires_auth)),
+        )
+        .route(
+            "/:cage_id/health-settings",
+            post(update_users_cage_health_settings)
                 .layer(middleware::from_fn(auth_middleware::requires_auth)),
         )
 }
@@ -120,4 +131,16 @@ pub async fn export_cage_data(
             Ok(csv_response.into_response())
         }
     }
+}
+
+pub async fn update_users_cage_health_settings(
+    State(app_sate): State<Arc<AppState>>,
+    Extension(_): Extension<AuthUserDto>,
+    Path(cage_id): Path<String>,
+    ValidatedJson(payload): ValidatedJson<UpdateHealthSettingsDto>,
+) -> Result<ApiSuccessResponse<HealthSettings>, ApiErrorResponse> {
+    let spm_service = SpmService::new(app_sate.mongo_client.clone());
+    spm_service
+        .update_cage_health_settings(cage_id, payload)
+        .await
 }

@@ -74,3 +74,11 @@ pub struct SpmDeviceToken {
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub updated_at: DateTime<Utc>,
 }
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct HealthSettings {
+    pub cage_id: String,
+    pub temperature: f32,
+    pub pressure: f32,
+    pub humidity: f32,
+}
