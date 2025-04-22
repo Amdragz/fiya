@@ -6,9 +6,10 @@ use mongodb::Client;
 
 use crate::{
     dtos::spm_dtos::{
-        AddNewCageDto, CageCsvDto, CageDto, DownloadCageReportDto, FileType, UpdateCageDto,
+        AddNewCageDto, CageCsvDto, CageDto, DownloadCageReportDto, UpdateCageDto,
+        UpdateHealthSettingsDto,
     },
-    models::spm::{CageWithDeviceToken, SpmDeviceToken},
+    models::spm::{CageWithDeviceToken, HealthSettings, SpmDeviceToken},
     repository::{spm_repository::SpmRepository, user_repository::UserRepository},
     utils::{
         error_handler::{internal_error, internal_server_error},
@@ -259,5 +260,29 @@ impl SpmService {
             .await?;
         let pdf_data = generate_pdf_for_cage_data(cages).map_err(internal_error)?;
         Ok(SpmDownloadPdfSuccessResponse::new(pdf_data))
+    }
+
+    pub async fn update_cage_health_settings(
+        &self,
+        cage_id: String,
+        update_health_settings_dto: UpdateHealthSettingsDto,
+    ) -> Result<ApiSuccessResponse<HealthSettings>, ApiErrorResponse> {
+        let db = self.client.database("fiyadb");
+        let spm_repo = SpmRepository::new(&db);
+
+        if (spm_repo.find_cage_by_cage_id(&cage_id).await?).is_none() {
+            return Err(ApiErrorResponse::new(
+                403,
+                String::from("Cage does not exist"),
+            ));
+        }
+
+        let health_settings = update_health_settings_dto.to_model(cage_id);
+        let updated_health_settings = spm_repo.update_health_settings(health_settings).await?;
+        Ok(ApiSuccessResponse::new(
+            String::from("Successfully updated health settings"),
+            updated_health_settings,
+            None,
+        ))
     }
 }

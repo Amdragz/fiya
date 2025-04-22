@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::models::spm::{Cage, ObjectRecognition};
+use crate::models::spm::{Cage, HealthSettings, ObjectRecognition};
 
 #[derive(Deserialize, Validate)]
 pub struct AddNewCageDto {
@@ -190,4 +190,22 @@ pub struct DownloadCageReportDto {
     pub end_date: DateTime<Utc>,
     #[validate(length(min = 1, message = "file type is required"))]
     pub file_type: String,
+}
+
+#[derive(Validate, Deserialize)]
+pub struct UpdateHealthSettingsDto {
+    pub temperature: f32,
+    pub pressure: f32,
+    pub humidity: f32,
+}
+
+impl UpdateHealthSettingsDto {
+    pub fn to_model(&self, cage_id: String) -> HealthSettings {
+        HealthSettings {
+            cage_id,
+            temperature: self.temperature,
+            pressure: self.pressure,
+            humidity: self.humidity,
+        }
+    }
 }

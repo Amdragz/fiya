@@ -4,8 +4,9 @@ use axum_extra::headers::UserAgent;
 use chrono::{DateTime, Utc};
 use dotenvy::dotenv;
 use genpdf::{
-    elements::{self, Paragraph, TableLayout},
+    elements::{self, Paragraph, StyledElement, TableLayout},
     fonts::from_files,
+    style::Style,
     Document,
 };
 use hmac::{Hmac, Mac};
@@ -98,27 +99,30 @@ pub fn generate_pdf_for_cage_data(cages: Vec<Cage>) -> Result<Vec<u8>, genpdf::e
     let mut doc = Document::new(font_family);
     doc.set_title("Smart poultry monitor cage data");
 
-    let mut table = TableLayout::new(vec![3; 16]);
+    let column_widths = vec![2, 3, 4, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 6, 6, 6];
+
+    let mut table = TableLayout::new(column_widths);
     table.set_cell_decorator(elements::FrameCellDecorator::new(true, true, false));
 
+    let header_style = Style::new().bold();
     table
         .row()
-        .element(Paragraph::new("ID"))
+        .element(StyledElement::new(Paragraph::new("ID"), header_style))
         .element(Paragraph::new("Cage ID"))
-        .element(Paragraph::new("Assigned Monitor"))
-        .element(Paragraph::new("Livestock No"))
-        .element(Paragraph::new("Temperature"))
-        .element(Paragraph::new("Humidity"))
+        .element(Paragraph::new("Assigned Monitor").aligned(genpdf::Alignment::Center))
+        .element(Paragraph::new("Livestock No").aligned(genpdf::Alignment::Center))
+        .element(Paragraph::new("Temperature").aligned(genpdf::Alignment::Center))
+        .element(Paragraph::new("Humidity").aligned(genpdf::Alignment::Center))
         .element(Paragraph::new("Pressure"))
         .element(Paragraph::new("Ammonia"))
         .element(Paragraph::new("CO2"))
-        .element(Paragraph::new("Coccidiosis"))
-        .element(Paragraph::new("Newcastle"))
-        .element(Paragraph::new("Salmonella"))
+        .element(Paragraph::new("Coccidiosis").aligned(genpdf::Alignment::Center))
+        .element(Paragraph::new("Newcastle").aligned(genpdf::Alignment::Center))
+        .element(Paragraph::new("Salmonella").aligned(genpdf::Alignment::Center))
         .element(Paragraph::new("Healthy"))
-        .element(Paragraph::new("Timestamp"))
-        .element(Paragraph::new("Created At"))
-        .element(Paragraph::new("Updated At"))
+        .element(Paragraph::new("Timestamp").aligned(genpdf::Alignment::Center))
+        .element(Paragraph::new("Created At").aligned(genpdf::Alignment::Center))
+        .element(Paragraph::new("Updated At").aligned(genpdf::Alignment::Center))
         .push()?;
 
     cages.iter().try_for_each(|cage| {
