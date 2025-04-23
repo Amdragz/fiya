@@ -122,6 +122,20 @@ impl SpmRepository {
         }
     }
 
+    pub async fn find_health_settings_by_cage_id(
+        &self,
+        cage_id: &str,
+    ) -> Result<Option<HealthSettings>, ApiErrorResponse> {
+        let filter = doc! { "cage_id": cage_id };
+        let result = self
+            .health_settings
+            .find_one(filter)
+            .await
+            .map_err(internal_error)?;
+
+        Ok(result)
+    }
+
     pub async fn update_health_settings(
         &self,
         health_settings: HealthSettings,

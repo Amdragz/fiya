@@ -262,6 +262,37 @@ impl SpmService {
         Ok(SpmDownloadPdfSuccessResponse::new(pdf_data))
     }
 
+    pub async fn get_cage_health_settings_by_cage_id(
+        &self,
+        cage_id: String,
+    ) -> Result<ApiSuccessResponse<HealthSettings>, ApiErrorResponse> {
+        let db = self.client.database("fiyadb");
+        let spm_repo = SpmRepository::new(&db);
+
+        if (spm_repo.find_cage_by_cage_id(&cage_id).await?).is_none() {
+            return Err(ApiErrorResponse::new(
+                401,
+                String::from("Cage does not exit"),
+            ));
+        }
+
+        let health_settings = match spm_repo.find_health_settings_by_cage_id(&cage_id).await? {
+            Some(health_settings) => health_settings,
+            None => {
+                return Err(ApiErrorResponse::new(
+                    404,
+                    String::from("cage health settings do not exist"),
+                ))
+            }
+        };
+
+        Ok(ApiSuccessResponse::new(
+            String::from("Successfully got cage settings"),
+            health_settings,
+            None,
+        ))
+    }
+
     pub async fn update_cage_health_settings(
         &self,
         cage_id: String,

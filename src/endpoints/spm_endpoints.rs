@@ -58,6 +58,7 @@ pub fn spm_endpoints() -> Router<Arc<AppState>> {
         .route(
             "/:cage_id/health-settings",
             post(update_users_cage_health_settings)
+                .get(get_users_cage_health_settings)
                 .layer(middleware::from_fn(auth_middleware::requires_auth)),
         )
 }
@@ -142,5 +143,16 @@ pub async fn update_users_cage_health_settings(
     let spm_service = SpmService::new(app_sate.mongo_client.clone());
     spm_service
         .update_cage_health_settings(cage_id, payload)
+        .await
+}
+
+pub async fn get_users_cage_health_settings(
+    State(app_sate): State<Arc<AppState>>,
+    Extension(_): Extension<AuthUserDto>,
+    Path(cage_id): Path<String>,
+) -> Result<ApiSuccessResponse<HealthSettings>, ApiErrorResponse> {
+    let spm_service = SpmService::new(app_sate.mongo_client.clone());
+    spm_service
+        .get_cage_health_settings_by_cage_id(cage_id)
         .await
 }
