@@ -96,14 +96,14 @@ impl SpmService {
         ))
     }
 
-    pub async fn fetch_all_users_cages(
+    pub async fn fetch_all_users_cage_data(
         &self,
         assigned_monitor: String,
     ) -> Result<ApiSuccessResponse<Vec<CageDto>>, ApiErrorResponse> {
         let db = self.client.database("fiyadb");
         let spm_repo = SpmRepository::new(&db);
 
-        let cages = spm_repo.find_all_users_cages(assigned_monitor).await?;
+        let cages = spm_repo.find_all_users_cage_data(assigned_monitor).await?;
         let cage_dtos = cages.into_iter().map(CageDto::from).collect();
 
         Ok(ApiSuccessResponse::new(
@@ -225,7 +225,7 @@ impl SpmService {
         };
 
         let cages = spm_repo
-            .find_all_users_cages(found_user.id.to_string())
+            .find_all_users_cage_data(found_user.id.to_string())
             .await?;
         let mut wrt = WriterBuilder::new().from_writer(Cursor::new(Vec::new()));
 
@@ -256,7 +256,7 @@ impl SpmService {
         };
 
         let cages = spm_repo
-            .find_all_users_cages(found_user.id.to_string())
+            .find_all_users_cage_data(found_user.id.to_string())
             .await?;
         let pdf_data = generate_pdf_for_cage_data(cages).map_err(internal_error)?;
         Ok(SpmDownloadPdfSuccessResponse::new(pdf_data))
