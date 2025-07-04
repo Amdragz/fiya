@@ -79,13 +79,19 @@ impl SpmRepository {
         Ok(device_token)
     }
 
-    pub async fn find_all_users_cages(
+    pub async fn find_all_users_cage_data(
         &self,
         assigned_monitor: String,
     ) -> Result<Vec<Cage>, ApiErrorResponse> {
         let filter = doc! { "assigned_monitor": assigned_monitor };
+        let sort = doc! { "created_at": -1 };
 
-        let cursor = self.cages.find(filter).await.map_err(internal_error)?;
+        let cursor = self
+            .cages
+            .find(filter)
+            .sort(sort)
+            .await
+            .map_err(internal_error)?;
         let cages: Vec<Cage> = cursor.try_collect().await.map_err(internal_error)?;
 
         Ok(cages)
