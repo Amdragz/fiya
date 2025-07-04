@@ -209,3 +209,9 @@ impl UpdateHealthSettingsDto {
         }
     }
 }
+
+#[derive(Deserialize, Validate)]
+pub struct CagePagination {
+    pub page: u64,
+    pub per_page: u64,
+}

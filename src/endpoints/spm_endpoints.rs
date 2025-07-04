@@ -2,7 +2,7 @@ use std::{str::FromStr, sync::Arc};
 
 use crate::{
     dtos::spm_dtos::{
-        AddNewCageDto, CageDto, DownloadCageReportDto, FileType, UpdateCageDto,
+        AddNewCageDto, CageDto, CagePagination, DownloadCageReportDto, FileType, UpdateCageDto,
         UpdateHealthSettingsDto,
     },
     middleware::auth_middleware::{self, SpmDeviceAuth},
@@ -87,9 +87,12 @@ pub async fn update_cage_info(
 pub async fn fetch_all_users_cage_data(
     State(app_sate): State<Arc<AppState>>,
     Extension(auth_user): Extension<AuthUserDto>,
+    ValidatedJson(pagination): ValidatedJson<CagePagination>,
 ) -> Result<ApiSuccessResponse<Vec<CageDto>>, ApiErrorResponse> {
     let spm_service = SpmService::new(app_sate.mongo_client.clone());
-    spm_service.fetch_all_users_cage_data(auth_user.id).await
+    spm_service
+        .fetch_all_users_cage_data(auth_user.id, pagination)
+        .await
 }
 
 pub async fn download_cage_report_in_csv_format(
