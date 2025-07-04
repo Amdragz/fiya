@@ -97,6 +97,28 @@ impl SpmRepository {
         Ok(cages)
     }
 
+    pub async fn find_all_users_cage_data_with_pagination(
+        &self,
+        assigned_monitor: String,
+        page: u64,
+        per_page: u64,
+    ) -> Result<Vec<Cage>, ApiErrorResponse> {
+        let filter = doc! { "assigned_monitor": assigned_monitor };
+        let sort = doc! { "created_at": -1 };
+        let skip = (page - 1) * per_page;
+
+        let cursor = self
+            .cages
+            .find(filter)
+            .sort(sort)
+            .skip(skip)
+            .limit(per_page as i64)
+            .await
+            .map_err(internal_error)?;
+        let cages: Vec<Cage> = cursor.try_collect().await.map_err(internal_error)?;
+        Ok(cages)
+    }
+
     pub async fn find_cage_data_by_date_range(
         &self,
         cage_id: &str,
