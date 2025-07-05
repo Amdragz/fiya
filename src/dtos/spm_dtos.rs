@@ -218,6 +218,6 @@ pub struct UserCageDataResponse {
 
 #[derive(Deserialize, Validate)]
 pub struct CagePagination {
-    pub page: u64,
-    pub per_page: u64,
+    pub offset: u64,
+    pub limit: u64,
 }

@@ -104,9 +104,9 @@ impl SpmService {
         let db = self.client.database("fiyadb");
         let spm_repo = SpmRepository::new(&db);
 
-        let (page, per_page) = (cage_pagination.page, cage_pagination.per_page);
+        let (offset, limit) = (cage_pagination.offset, cage_pagination.limit);
         let (cages, total_cage_data) = spm_repo
-            .find_all_users_cage_data_with_pagination(assigned_monitor, page, per_page)
+            .find_all_users_cage_data_with_pagination(assigned_monitor, offset, limit)
             .await?;
         let cage_dtos = cages.into_iter().map(CageDto::from).collect();
         let user_cage_data = UserCageDataResponse {
