@@ -102,10 +102,16 @@ impl SpmRepository {
         assigned_monitor: String,
         page: u64,
         per_page: u64,
-    ) -> Result<Vec<Cage>, ApiErrorResponse> {
+    ) -> Result<(Vec<Cage>, u64), ApiErrorResponse> {
         let filter = doc! { "assigned_monitor": assigned_monitor };
         let sort = doc! { "created_at": -1 };
         let skip = (page - 1) * per_page;
+
+        let total_cage_data = self
+            .cages
+            .count_documents(filter.clone())
+            .await
+            .map_err(internal_error)?;
 
         let cursor = self
             .cages
@@ -116,7 +122,7 @@ impl SpmRepository {
             .await
             .map_err(internal_error)?;
         let cages: Vec<Cage> = cursor.try_collect().await.map_err(internal_error)?;
-        Ok(cages)
+        Ok((cages, total_cage_data))
     }
 
     pub async fn find_cage_data_by_date_range(

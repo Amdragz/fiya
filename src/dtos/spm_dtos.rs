@@ -210,6 +210,12 @@ impl UpdateHealthSettingsDto {
     }
 }
 
+#[derive(Serialize)]
+pub struct UserCageDataResponse {
+    pub total_cage_data: u64,
+    pub cages: Vec<CageDto>,
+}
+
 #[derive(Deserialize, Validate)]
 pub struct CagePagination {
     pub page: u64,
