@@ -17,7 +17,7 @@ use crate::{
             ApiErrorResponse, ApiSuccessResponse, SpmDownloadCsvSuccessResponse,
             SpmDownloadPdfSuccessResponse,
         },
-        validators::ValidatedJson,
+        validators::{ValidatedJson, ValidatedQuery},
     },
     AppState,
 };
@@ -87,7 +87,7 @@ pub async fn update_cage_info(
 pub async fn fetch_all_users_cage_data(
     State(app_sate): State<Arc<AppState>>,
     Extension(auth_user): Extension<AuthUserDto>,
-    ValidatedJson(pagination): ValidatedJson<CagePagination>,
+    ValidatedQuery(pagination): ValidatedQuery<CagePagination>,
 ) -> Result<ApiSuccessResponse<UserCageDataResponse>, ApiErrorResponse> {
     let spm_service = SpmService::new(app_sate.mongo_client.clone());
     spm_service
