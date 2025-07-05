@@ -7,7 +7,7 @@ use mongodb::Client;
 use crate::{
     dtos::spm_dtos::{
         AddNewCageDto, CageCsvDto, CageDto, CagePagination, DownloadCageReportDto, UpdateCageDto,
-        UpdateHealthSettingsDto,
+        UpdateHealthSettingsDto, UserCageDataResponse,
     },
     models::spm::{CageWithDeviceToken, HealthSettings, SpmDeviceToken},
     repository::{spm_repository::SpmRepository, user_repository::UserRepository},
@@ -100,19 +100,23 @@ impl SpmService {
         &self,
         assigned_monitor: String,
         cage_pagination: CagePagination,
-    ) -> Result<ApiSuccessResponse<Vec<CageDto>>, ApiErrorResponse> {
+    ) -> Result<ApiSuccessResponse<UserCageDataResponse>, ApiErrorResponse> {
         let db = self.client.database("fiyadb");
         let spm_repo = SpmRepository::new(&db);
 
         let (page, per_page) = (cage_pagination.page, cage_pagination.per_page);
-        let cages = spm_repo
+        let (cages, total_cage_data) = spm_repo
             .find_all_users_cage_data_with_pagination(assigned_monitor, page, per_page)
             .await?;
         let cage_dtos = cages.into_iter().map(CageDto::from).collect();
+        let user_cage_data = UserCageDataResponse {
+            total_cage_data,
+            cages: cage_dtos,
+        };
 
         Ok(ApiSuccessResponse::new(
             String::from("Succesfully fetched all users cages"),
-            cage_dtos,
+            user_cage_data,
             None,
         ))
     }

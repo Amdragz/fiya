@@ -2,8 +2,8 @@ use std::{str::FromStr, sync::Arc};
 
 use crate::{
     dtos::spm_dtos::{
-        AddNewCageDto, CageDto, CagePagination, DownloadCageReportDto, FileType, UpdateCageDto,
-        UpdateHealthSettingsDto,
+        AddNewCageDto, CagePagination, DownloadCageReportDto, FileType, UpdateCageDto,
+        UpdateHealthSettingsDto, UserCageDataResponse,
     },
     middleware::auth_middleware::{self, SpmDeviceAuth},
     models::{
@@ -33,8 +33,11 @@ pub fn spm_endpoints() -> Router<Arc<AppState>> {
     Router::new()
         .route(
             "/cages",
-            post(add_new_cage)
-                .get(fetch_all_users_cage_data)
+            post(add_new_cage).layer(middleware::from_fn(auth_middleware::requires_auth)),
+        )
+        .route(
+            "/cages",
+            post(fetch_all_users_cage_data)
                 .layer(middleware::from_fn(auth_middleware::requires_auth)),
         )
         .route(
@@ -88,7 +91,7 @@ pub async fn fetch_all_users_cage_data(
     State(app_sate): State<Arc<AppState>>,
     Extension(auth_user): Extension<AuthUserDto>,
     ValidatedJson(pagination): ValidatedJson<CagePagination>,
-) -> Result<ApiSuccessResponse<Vec<CageDto>>, ApiErrorResponse> {
+) -> Result<ApiSuccessResponse<UserCageDataResponse>, ApiErrorResponse> {
     let spm_service = SpmService::new(app_sate.mongo_client.clone());
     spm_service
         .fetch_all_users_cage_data(auth_user.id, pagination)
