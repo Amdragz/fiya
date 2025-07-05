@@ -33,11 +33,8 @@ pub fn spm_endpoints() -> Router<Arc<AppState>> {
     Router::new()
         .route(
             "/cages",
-            post(add_new_cage).layer(middleware::from_fn(auth_middleware::requires_auth)),
-        )
-        .route(
-            "/cages",
-            post(fetch_all_users_cage_data)
+            get(fetch_all_users_cage_data)
+                .post(add_new_cage)
                 .layer(middleware::from_fn(auth_middleware::requires_auth)),
         )
         .route(
