@@ -7,7 +7,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use axum_extra::extract::cookie::{Cookie, Expiration};
+use axum_extra::extract::cookie::{Cookie, Expiration, SameSite};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use time::Duration;
@@ -75,6 +75,8 @@ where
             Some(refresh_token) => {
                 let cookie = Cookie::build(("refresh_token", refresh_token.0))
                     .http_only(true)
+                    //.secure(true)
+                    .same_site(SameSite::None)
                     .expires(Expiration::from(datetime_to_offset_datetime(
                         refresh_token.1,
                     )))

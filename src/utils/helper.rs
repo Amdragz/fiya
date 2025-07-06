@@ -39,11 +39,9 @@ pub fn is_browser(user_agent: UserAgent) -> bool {
     let common_browsers = ["Chrome", "Firefox", "Safari", "Edge", "Opera"];
 
     // Check if the user agent contains any common browser identifiers
-    let is_browser = common_browsers
+    common_browsers
         .iter()
-        .any(|&browser| user_agent.as_str().contains(browser));
-
-    is_browser
+        .any(|&browser| user_agent.as_str().contains(browser))
 }
 
 pub fn hash_id_with_secret(id: &str) -> String {
